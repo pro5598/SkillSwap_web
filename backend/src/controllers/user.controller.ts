@@ -2,6 +2,15 @@ import { Request, Response } from "express";
 import { UserService } from "../services/user.service";
 import { CreateUserDTO, LoginUserDTO } from "../dtos/user.dto";
 import { ApiResponseHelper } from "../utils/apihelper.util";
+import { IUser } from "../models/user.model";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: Record<string, any> | IUser;
+    }
+  }
+}
 
 export class UserController {
   private userService: UserService;
