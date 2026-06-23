@@ -27,8 +27,14 @@ export const UserSchema = z.object({
     )
     .trim()
     .lowercase(),
+  phoneNumber: z
+    .string()
+    .min(10, "Phone number must be at least 10 digits")
+    .regex(/^\d+$/, "Phone number must contain only numbers")
+    .trim(),
   password: z.string().min(6, "Password must be at least 6 characters long"),
   role: z.enum(["admin", "user"]).default("user"),
+  imageUrl: z.string().optional(),
 });
 
 export type UserType = z.infer<typeof UserSchema>;
