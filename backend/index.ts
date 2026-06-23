@@ -6,12 +6,12 @@ const startApplicationServer = async () => {
   try {
     await connectToMongoDB();
 
-    app.listen(API_PORT, () => {
-      console.log(` SkillSwap Server Online: http://localhost:${API_PORT}`);
+    app.listen(Number(API_PORT), () => {
+      console.log(`SkillSwap Server Online on port: ${API_PORT}`);
     });
   } catch (initializationError) {
     console.error(
-      " Critical Server Initialization failure:",
+      "Server Initialization failure:",
       initializationError,
     );
     process.exit(1);
