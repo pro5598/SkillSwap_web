@@ -1,5 +1,5 @@
 import { UserMongoRepository } from "../repositories/user.repository";
-import { CreateUserDTO, LoginUserDTO } from "../dtos/user.dto";
+import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from "../dtos/user.dto";
 import { IUser } from "../models/user.model";
 import { HttpException } from "../exceptions/http-exception";
 import bcryptjs from "bcryptjs";
@@ -10,7 +10,7 @@ const userRepository = new UserMongoRepository();
 
 export class UserService {
 
-  async createUser(userData: CreateUserDTO): Promise<Omit<IUser, "password">> {
+  async createUser(userData: CreateUserDTO): Promise<{ user: Omit<IUser, "password">; token: string }> {
     const existingEmail = await userRepository.getUserByEmail(userData.email);
     if (existingEmail) {
       throw new HttpException(400, "An account with this email already exists");
@@ -30,7 +30,13 @@ export class UserService {
     const userObj = user.toObject();
     const { password, ...safeUser } = userObj;
 
-    return safeUser;
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "7d" } 
+    );
+
+    return { user: safeUser, token };
   }
 
 
@@ -59,5 +65,54 @@ export class UserService {
     const { password, ...safeUser } = userObj;
 
     return { user: safeUser, token };
+  }
+
+  async updateUser(id: string, updateData: UpdateUserDTO) {
+    const user = await userRepository.getUserById(id);
+    if (!user) {
+      throw new HttpException(404, "User not found");
+    }
+    if (updateData.email && updateData.email !== user.email) {
+      const existingEmail = await userRepository.getUserByEmail(
+        updateData.email,
+      );
+      if (existingEmail) {
+        throw new HttpException(400, "Email already exists");
+      }
+    }
+    if (updateData.username && updateData.username !== user.username) {
+      const existingUsername = await userRepository.getUserByUsername(
+        updateData.username,
+      );
+      if (existingUsername) {
+        throw new HttpException(400, "Username already exists");
+      }
+    }
+    if (updateData.newPassword) {
+      if (!updateData.currentPassword) {
+        throw new HttpException(400, "Current password is required to change password");
+      }
+      const isPasswordValid = await bcryptjs.compare(
+        updateData.currentPassword,
+        user.password
+      );
+      if (!isPasswordValid) {
+        throw new HttpException(400, "Invalid current password");
+      }
+      const hashedPassword = await bcryptjs.hash(updateData.newPassword, 10);
+      updateData.password = hashedPassword;
+    } else if (updateData.password) {
+      delete updateData.password;
+    }
+    
+    delete updateData.currentPassword;
+    delete updateData.newPassword;
+    const updatedUser = await userRepository.update(id, updateData);
+    if (updatedUser) {
+        const userObj = updatedUser.toObject();
+        const { password, ...safeUser } = userObj;
+        return safeUser;
+    }
+    return null;
   }
 }
