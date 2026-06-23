@@ -25,8 +25,14 @@ const UserMongoSchema: Schema = new Schema<IUser>(
       lowercase: true,
       trim: true,
     },
+    phoneNumber: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     password: { type: String, required: true },
     role: { type: String, enum: ["admin", "user"], default: "user" },
+    imageUrl: { type: String, required: false },
   },
   {
     timestamps: true, // Automatically manages createdAt and updatedAt
