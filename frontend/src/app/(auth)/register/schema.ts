@@ -14,6 +14,10 @@ export const registerSchema = z
       .string()
       .min(3, "Username must be at least 3 characters")
       .regex(/^[a-zA-Z0-9_]+$/, "Special characters not allowed"),
+    phoneNumber: z
+      .string()
+      .min(10, "Phone number must be at least 10 digits")
+      .regex(/^\d+$/, "Phone number must contain only numbers"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
