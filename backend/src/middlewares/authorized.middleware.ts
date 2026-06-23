@@ -22,7 +22,13 @@ export const authorizedMiddleware = async (
   next: NextFunction,
 ) => {
   try {
-    const token = req.cookies?.skillswap_auth_token;
+    let token: string | undefined;
+
+    if (req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    } else if (req.cookies && req.cookies.skillswap_auth_token) {
+      token = req.cookies.skillswap_auth_token;
+    }
 
     if (!token) {
       throw new HttpException(401, "Authentication required. Please sign in.");
