@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { UserService } from "../services/user.service";
-import { CreateUserDTO, LoginUserDTO } from "../dtos/user.dto";
+import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from "../dtos/user.dto";
 import { ApiResponseHelper } from "../utils/apihelper.util";
 import { IUser } from "../models/user.model";
 
@@ -8,6 +8,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: Record<string, any> | IUser;
+      file?: any;
     }
   }
 }
@@ -22,6 +23,7 @@ export class UserController {
     this.loginUser = this.loginUser.bind(this);
     this.logoutUser = this.logoutUser.bind(this);
     this.getCurrentUser = this.getCurrentUser.bind(this);
+    this.updateUser = this.updateUser.bind(this);
   }
 
   async createUser(req: Request, res: Response) {
@@ -37,10 +39,18 @@ export class UserController {
         return ApiResponseHelper.error(res, validationErrorMessage, 400);
       }
 
-      const user = await this.userService.createUser(userData.data);
+      const { user, token } = await this.userService.createUser(userData.data);
+
+      res.cookie("skillswap_auth_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
       return ApiResponseHelper.success(
         res,
-        user,
+        { user, token },
         "User registered successfully",
         201,
       );
@@ -75,7 +85,7 @@ export class UserController {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      return ApiResponseHelper.success(res, { user }, "Login successful");
+      return ApiResponseHelper.success(res, { user, token }, "Login successful");
     } catch (error: any) {
       return ApiResponseHelper.error(
         res,
@@ -109,6 +119,43 @@ export class UserController {
         return ApiResponseHelper.error(res, "User not authenticated", 401);
       }
       return ApiResponseHelper.success(res, { user: req.user }, "User details retrieved successfully");
+    } catch (error: any) {
+      return ApiResponseHelper.error(
+        res,
+        error.message || "Internal Server Error",
+        error.status || 500,
+      );
+    }
+  }
+
+  async updateUser(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?._id || (req.user as any)?.id;
+      const filename = req.file?.filename;
+      if (!userId) {
+        return ApiResponseHelper.error(res, "Unauthorized", 401);
+      }
+
+      const parsedData = UpdateUserDTO.safeParse(req.body);
+      if (!parsedData.success) {
+        const fieldErrors = parsedData.error.flatten().fieldErrors;
+        const validationErrorMessage = Object.entries(fieldErrors)
+          .map(([field, msgs]) => `${field}: ${msgs?.join(", ")}`)
+          .join(" | ");
+
+        return ApiResponseHelper.error(res, validationErrorMessage, 400);
+      }
+
+      if (filename) {
+        parsedData.data.imageUrl = "/uploads/" + filename;
+      }
+
+      const updatedUser = await this.userService.updateUser(userId.toString(), parsedData.data);
+      return ApiResponseHelper.success(
+        res,
+        { user: updatedUser },
+        "User updated successfully",
+      );
     } catch (error: any) {
       return ApiResponseHelper.error(
         res,
