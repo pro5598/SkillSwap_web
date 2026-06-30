@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { UserController } from "../controllers/user.controller";
-import { authorizedMiddleware } from "../middlewares/authorized.middleware";
+import { authorizedMiddleware, adminMiddleware } from "../middlewares/authorized.middleware";
 import { uploads } from "../middlewares/upload.middleware";
 
 export const authRouter = Router();
@@ -19,3 +19,10 @@ userRouter.put(
   uploads.single("profileImage"),
   userController.updateUser,
 );
+
+// Admin Routes
+userRouter.get("/admin/all", authorizedMiddleware, adminMiddleware, userController.getAllUsers);
+userRouter.get("/admin/:id", authorizedMiddleware, adminMiddleware, userController.getUserById);
+userRouter.post("/admin/create", authorizedMiddleware, adminMiddleware, userController.adminCreateUser);
+userRouter.put("/admin/:id", authorizedMiddleware, adminMiddleware, uploads.single("profileImage"), userController.adminUpdateUser);
+userRouter.delete("/admin/:id", authorizedMiddleware, adminMiddleware, userController.adminDeleteUser);
