@@ -24,6 +24,11 @@ export class UserController {
     this.logoutUser = this.logoutUser.bind(this);
     this.getCurrentUser = this.getCurrentUser.bind(this);
     this.updateUser = this.updateUser.bind(this);
+    this.getAllUsers = this.getAllUsers.bind(this);
+    this.getUserById = this.getUserById.bind(this);
+    this.adminCreateUser = this.adminCreateUser.bind(this);
+    this.adminUpdateUser = this.adminUpdateUser.bind(this);
+    this.adminDeleteUser = this.adminDeleteUser.bind(this);
   }
 
   async createUser(req: Request, res: Response) {
@@ -161,6 +166,97 @@ export class UserController {
         res,
         error.message || "Internal Server Error",
         error.status || 500,
+      );
+    }
+  }
+
+  async getAllUsers(req: Request, res: Response) {
+    try {
+      const users = await this.userService.getAllUsers();
+      return ApiResponseHelper.success(res, { users }, "Users retrieved successfully");
+    } catch (error: any) {
+      return ApiResponseHelper.error(
+        res,
+        error.message || "Internal Server Error",
+        error.status || 500
+      );
+    }
+  }
+
+  async getUserById(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = await this.userService.getUserById(id as string);
+      return ApiResponseHelper.success(res, { user }, "User retrieved successfully");
+    } catch (error: any) {
+      return ApiResponseHelper.error(
+        res,
+        error.message || "Internal Server Error",
+        error.status || 500
+      );
+    }
+  }
+
+  async adminCreateUser(req: Request, res: Response) {
+    try {
+      const userData = CreateUserDTO.safeParse(req.body);
+      if (!userData.success) {
+        const fieldErrors = userData.error.flatten().fieldErrors;
+        const validationErrorMessage = Object.entries(fieldErrors)
+          .map(([field, msgs]) => `${field}: ${msgs?.join(", ")}`)
+          .join(" | ");
+        return ApiResponseHelper.error(res, validationErrorMessage, 400);
+      }
+      
+      const { user } = await this.userService.createUser(userData.data);
+      return ApiResponseHelper.success(res, { user }, "User created successfully", 201);
+    } catch (error: any) {
+      return ApiResponseHelper.error(
+        res,
+        error.message || "Internal Server Error",
+        error.status || 500
+      );
+    }
+  }
+
+  async adminUpdateUser(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const parsedData = UpdateUserDTO.safeParse(req.body);
+      if (!parsedData.success) {
+        const fieldErrors = parsedData.error.flatten().fieldErrors;
+        const validationErrorMessage = Object.entries(fieldErrors)
+          .map(([field, msgs]) => `${field}: ${msgs?.join(", ")}`)
+          .join(" | ");
+        return ApiResponseHelper.error(res, validationErrorMessage, 400);
+      }
+      
+      const filename = req.file?.filename;
+      if (filename) {
+        parsedData.data.imageUrl = "/uploads/" + filename;
+      }
+      
+      const updatedUser = await this.userService.adminUpdateUser(id as string, parsedData.data);
+      return ApiResponseHelper.success(res, { user: updatedUser }, "User updated successfully");
+    } catch (error: any) {
+      return ApiResponseHelper.error(
+        res,
+        error.message || "Internal Server Error",
+        error.status || 500
+      );
+    }
+  }
+
+  async adminDeleteUser(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      await this.userService.deleteUser(id as string);
+      return ApiResponseHelper.success(res, null, "User deleted successfully");
+    } catch (error: any) {
+      return ApiResponseHelper.error(
+        res,
+        error.message || "Internal Server Error",
+        error.status || 500
       );
     }
   }
