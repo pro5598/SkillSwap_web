@@ -13,6 +13,7 @@ interface User {
   username: string;
   phoneNumber?: string;
   imageUrl?: string;
+  role?: string;
 }
 
 interface AuthContextType {
