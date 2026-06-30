@@ -115,4 +115,75 @@ export class UserService {
     }
     return null;
   }
+
+  async getAllUsers() {
+    const users = await userRepository.getAll();
+    return users.map(user => {
+      const userObj = user.toObject();
+      const { password, ...safeUser } = userObj;
+      return safeUser;
+    });
+  }
+
+  async getUserById(id: string) {
+    const user = await userRepository.getUserById(id);
+    if (!user) {
+       throw new HttpException(404, "User not found");
+    }
+    const userObj = user.toObject();
+    const { password, ...safeUser } = userObj;
+    return safeUser;
+  }
+
+  async deleteUser(id: string) {
+    const user = await userRepository.getUserById(id);
+    if (!user) {
+      throw new HttpException(404, "User not found");
+    }
+    await userRepository.delete(id);
+    return true;
+  }
+
+  async adminUpdateUser(id: string, updateData: UpdateUserDTO) {
+    const user = await userRepository.getUserById(id);
+    if (!user) {
+      throw new HttpException(404, "User not found");
+    }
+    if (updateData.email && updateData.email !== user.email) {
+      const existingEmail = await userRepository.getUserByEmail(
+        updateData.email,
+      );
+      if (existingEmail) {
+        throw new HttpException(400, "Email already exists");
+      }
+    }
+    if (updateData.username && updateData.username !== user.username) {
+      const existingUsername = await userRepository.getUserByUsername(
+        updateData.username,
+      );
+      if (existingUsername) {
+        throw new HttpException(400, "Username already exists");
+      }
+    }
+    
+    if (updateData.newPassword) {
+      const hashedPassword = await bcryptjs.hash(updateData.newPassword, 10);
+      updateData.password = hashedPassword;
+    } else if (updateData.password) {
+      const hashedPassword = await bcryptjs.hash(updateData.password, 10);
+      updateData.password = hashedPassword;
+    }
+    
+    delete updateData.currentPassword;
+    delete updateData.newPassword;
+    
+    const updatedUser = await userRepository.update(id, updateData);
+    if (updatedUser) {
+        const userObj = updatedUser.toObject();
+        const { password, ...safeUser } = userObj;
+        return safeUser;
+    }
+    return null;
+  }
+
 }
