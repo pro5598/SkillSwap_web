@@ -18,6 +18,13 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [bio, setBio] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState("");
+  const [location, setLocation] = useState("");
+  const [availabilitySchedule, setAvailabilitySchedule] = useState("");
+  const [skillsOffered, setSkillsOffered] = useState("");
+  const [skillsWanted, setSkillsWanted] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -30,6 +37,12 @@ export default function ProfilePage() {
       setLastName(user.lastName || "");
       setUsername(user.username || "");
       setPhoneNumber(user.phoneNumber || "");
+      setBio(user.bio || "");
+      setExperienceLevel(user.experienceLevel || "");
+      setLocation(user.location || "");
+      setAvailabilitySchedule(user.availabilitySchedule || "");
+      setSkillsOffered(user.skillsOffered?.join(", ") || "");
+      setSkillsWanted(user.skillsWanted?.join(", ") || "");
       if (user.imageUrl) {
         setPreviewImage(`http://localhost:5000${user.imageUrl}`);
       }
@@ -62,6 +75,20 @@ export default function ProfilePage() {
       formData.append("lastName", lastName);
       formData.append("username", username);
       formData.append("phoneNumber", phoneNumber);
+      formData.append("bio", bio);
+      formData.append("experienceLevel", experienceLevel);
+      formData.append("location", location);
+      formData.append("availabilitySchedule", availabilitySchedule);
+      
+      if (skillsOffered) {
+        const skillsArray = skillsOffered.split(",").map(s => s.trim()).filter(s => s);
+        formData.append("skillsOffered", JSON.stringify(skillsArray));
+      }
+      
+      if (skillsWanted) {
+        const skillsArray = skillsWanted.split(",").map(s => s.trim()).filter(s => s);
+        formData.append("skillsWanted", JSON.stringify(skillsArray));
+      }
 
       if (profileImage) {
         formData.append("profileImage", profileImage);
@@ -204,6 +231,76 @@ export default function ProfilePage() {
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-black font-medium cursor-not-allowed"
                     />
                     <p className="text-xs text-gray-400 mt-1">Email address cannot be changed.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Professional Details Section */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-[#0D1236] border-b pb-2 mb-4">Professional Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-[#4A5568] mb-1">Bio</label>
+                    <textarea
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F4A261] focus:border-transparent outline-none transition-all text-black font-medium resize-none"
+                      placeholder="Tell us a little bit about yourself..."
+                    ></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#4A5568] mb-1">Experience Level</label>
+                    <select
+                      value={experienceLevel}
+                      onChange={(e) => setExperienceLevel(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F4A261] focus:border-transparent outline-none transition-all text-black font-medium"
+                    >
+                      <option value="">Select Level</option>
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Expert">Expert</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#4A5568] mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F4A261] focus:border-transparent outline-none transition-all text-black font-medium"
+                      placeholder="City, Country"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-[#4A5568] mb-1">Availability Schedule</label>
+                    <input
+                      type="text"
+                      value={availabilitySchedule}
+                      onChange={(e) => setAvailabilitySchedule(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F4A261] focus:border-transparent outline-none transition-all text-black font-medium"
+                      placeholder="e.g. Weekends, Mon-Fri Evenings"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-[#4A5568] mb-1">Skills Offered (comma separated)</label>
+                    <input
+                      type="text"
+                      value={skillsOffered}
+                      onChange={(e) => setSkillsOffered(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F4A261] focus:border-transparent outline-none transition-all text-black font-medium"
+                      placeholder="e.g. React, Python, Guitar"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-[#4A5568] mb-1">Skills Wanted (comma separated)</label>
+                    <input
+                      type="text"
+                      value={skillsWanted}
+                      onChange={(e) => setSkillsWanted(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F4A261] focus:border-transparent outline-none transition-all text-black font-medium"
+                      placeholder="e.g. Spanish, SEO, Piano"
+                    />
                   </div>
                 </div>
               </div>
