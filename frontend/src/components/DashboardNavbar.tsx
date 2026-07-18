@@ -26,14 +26,19 @@ export default function DashboardNavbar() {
   return (
     <nav className="bg-white border-b border-[#E2E8F0] px-4 py-3 sm:px-6 lg:px-8 shadow-sm relative z-50">
       <div className="flex justify-between items-center max-w-7xl mx-auto">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#F4A261] rounded-lg flex items-center justify-center font-bold text-white">
-            S
-          </div>
-          <span className="text-xl font-bold text-[#0D1236]">SkillSwap</span>
+        <Link href={user?.role === 'admin' ? '/admin/users' : '/dashboard'} className="flex items-center">
+          <span className="text-2xl font-extrabold tracking-tight text-[#F4A261]">Skill</span>
+          <span className="text-2xl font-extrabold tracking-tight text-[#0D1236]">Swap</span>
         </Link>
 
         <div className="flex items-center gap-4">
+          {user?.role === 'admin' && (
+            <div className="hidden md:flex gap-6 mr-4 items-center">
+              <Link href="/admin/users" className="text-sm font-medium text-[#4A5568] hover:text-[#0D1236]">Users</Link>
+              <Link href="/admin/categories" className="text-sm font-medium text-[#4A5568] hover:text-[#0D1236]">Categories</Link>
+              <Link href="/admin/skills" className="text-sm font-medium text-[#4A5568] hover:text-[#0D1236]">Skills</Link>
+            </div>
+          )}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -66,6 +71,33 @@ export default function DashboardNavbar() {
                 >
                   My Profile
                 </Link>
+
+                {user?.role === 'admin' && (
+                  <>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <Link
+                      href="/admin/users"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block md:hidden px-4 py-2 text-sm text-[#4A5568] hover:bg-[#F8F9FE] hover:text-[#0D1236] transition-colors"
+                    >
+                      Users
+                    </Link>
+                    <Link
+                      href="/admin/categories"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block md:hidden px-4 py-2 text-sm text-[#4A5568] hover:bg-[#F8F9FE] hover:text-[#0D1236] transition-colors"
+                    >
+                      Categories
+                    </Link>
+                    <Link
+                      href="/admin/skills"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block md:hidden px-4 py-2 text-sm text-[#4A5568] hover:bg-[#F8F9FE] hover:text-[#0D1236] transition-colors"
+                    >
+                      Skills
+                    </Link>
+                  </>
+                )}
 
                 <div className="border-t border-gray-100 my-1"></div>
                 <button
