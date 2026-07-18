@@ -33,6 +33,12 @@ const UserMongoSchema: Schema = new Schema<IUser>(
     password: { type: String, required: true },
     role: { type: String, enum: ["admin", "user"], default: "user" },
     imageUrl: { type: String, required: false },
+    bio: { type: String, trim: true, maxlength: 500 },
+    skillsOffered: { type: [String], default: [] },
+    skillsWanted: { type: [String], default: [] },
+    experienceLevel: { type: String, enum: ["Beginner", "Intermediate", "Expert"] },
+    location: { type: String, trim: true },
+    availabilitySchedule: { type: String, trim: true },
   },
   {
     timestamps: true, // Automatically manages createdAt and updatedAt
