@@ -6,6 +6,8 @@ import path from "path";
 import { HttpException } from "../src/exceptions/http-exception"; // Double-check relative pathing matches your tree structure
 import { ApiResponseHelper } from "../src/utils/apihelper.util";
 import { authRouter, userRouter } from "../src/routes/user.route";
+import { categoryRouter } from "../src/routes/category.route";
+import { skillRouter } from "../src/routes/skill.route";
 
 const app: Application = express();
 
@@ -37,6 +39,8 @@ app.use(morgan("dev"));
 // Feature API Context Routes
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/categories", categoryRouter);
+app.use("/api/v1/skills", skillRouter);
 
 app.use((req: Request, res: Response) => {
   return ApiResponseHelper.error(res, "Requested API Route Not Found", 404);
