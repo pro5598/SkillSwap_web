@@ -141,6 +141,21 @@ export class UserController {
         return ApiResponseHelper.error(res, "Unauthorized", 401);
       }
 
+      if (req.body.skillsOffered && typeof req.body.skillsOffered === "string") {
+        try {
+          req.body.skillsOffered = JSON.parse(req.body.skillsOffered);
+        } catch (e) {
+          // ignore parsing error, let zod handle validation failure
+        }
+      }
+      if (req.body.skillsWanted && typeof req.body.skillsWanted === "string") {
+        try {
+          req.body.skillsWanted = JSON.parse(req.body.skillsWanted);
+        } catch (e) {
+          // ignore parsing error, let zod handle validation failure
+        }
+      }
+
       const parsedData = UpdateUserDTO.safeParse(req.body);
       if (!parsedData.success) {
         const fieldErrors = parsedData.error.flatten().fieldErrors;
