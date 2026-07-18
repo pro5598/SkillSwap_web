@@ -35,6 +35,12 @@ export const UserSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters long"),
   role: z.enum(["admin", "user"]).default("user"),
   imageUrl: z.string().optional(),
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
+  skillsOffered: z.array(z.string()).optional(),
+  skillsWanted: z.array(z.string()).optional(),
+  experienceLevel: z.enum(["Beginner", "Intermediate", "Expert"]).optional(),
+  location: z.string().optional(),
+  availabilitySchedule: z.string().optional(),
 });
 
 export type UserType = z.infer<typeof UserSchema>;
