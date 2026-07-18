@@ -14,6 +14,12 @@ interface User {
   phoneNumber?: string;
   imageUrl?: string;
   role?: string;
+  bio?: string;
+  skillsOffered?: string[];
+  skillsWanted?: string[];
+  experienceLevel?: string;
+  location?: string;
+  availabilitySchedule?: string;
 }
 
 interface AuthContextType {
@@ -33,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkSession = async () => {
     try {
-      const response = await axiosInstance.get("/auth/me");
+      const response = await axiosInstance.get("/user/me");
       const resData = response.data;
       if (resData.data?.user) {
         setUser(resData.data.user);
