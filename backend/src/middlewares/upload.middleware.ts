@@ -46,3 +46,32 @@ export const uploads = {
   fields: (fieldsArray: { name: string; maxCount?: number }[]) =>
     upload.fields(fieldsArray),
 };
+
+const messageFileFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback,
+) => {
+  const allowed = [
+    "image/jpeg", "image/png", "image/webp", "image/gif",
+    "application/pdf", 
+    "application/msword", 
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/plain"
+  ];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new HttpException(400, "Unsupported file type"));
+  }
+};
+
+const uploadMessage = multer({
+  storage,
+  limits: { fileSize: 1024 * 1024 * 10 }, // 10MB
+  fileFilter: messageFileFilter,
+});
+
+export const messageUploads = {
+  single: (fieldName: string) => uploadMessage.single(fieldName),
+};
