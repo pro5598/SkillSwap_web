@@ -25,6 +25,7 @@ export class UserController {
     this.getCurrentUser = this.getCurrentUser.bind(this);
     this.updateUser = this.updateUser.bind(this);
     this.getAllUsers = this.getAllUsers.bind(this);
+    this.getDiscoverUsers = this.getDiscoverUsers.bind(this);
     this.getUserById = this.getUserById.bind(this);
     this.adminCreateUser = this.adminCreateUser.bind(this);
     this.adminUpdateUser = this.adminUpdateUser.bind(this);
@@ -145,14 +146,14 @@ export class UserController {
         try {
           req.body.skillsOffered = JSON.parse(req.body.skillsOffered);
         } catch (e) {
-          // ignore parsing error, let zod handle validation failure
+
         }
       }
       if (req.body.skillsWanted && typeof req.body.skillsWanted === "string") {
         try {
           req.body.skillsWanted = JSON.parse(req.body.skillsWanted);
         } catch (e) {
-          // ignore parsing error, let zod handle validation failure
+
         }
       }
 
@@ -198,6 +199,19 @@ export class UserController {
     }
   }
 
+  async getDiscoverUsers(req: Request, res: Response) {
+    try {
+      const users = await this.userService.getAllUsers({ role: { $ne: "admin" } });
+      return ApiResponseHelper.success(res, { users }, "Discover users retrieved successfully");
+    } catch (error: any) {
+      return ApiResponseHelper.error(
+        res,
+        error.message || "Internal Server Error",
+        error.status || 500
+      );
+    }
+  }
+
   async getUserById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -222,7 +236,7 @@ export class UserController {
           .join(" | ");
         return ApiResponseHelper.error(res, validationErrorMessage, 400);
       }
-      
+
       const { user } = await this.userService.createUser(userData.data);
       return ApiResponseHelper.success(res, { user }, "User created successfully", 201);
     } catch (error: any) {
@@ -245,12 +259,12 @@ export class UserController {
           .join(" | ");
         return ApiResponseHelper.error(res, validationErrorMessage, 400);
       }
-      
+
       const filename = req.file?.filename;
       if (filename) {
         parsedData.data.imageUrl = "/uploads/" + filename;
       }
-      
+
       const updatedUser = await this.userService.adminUpdateUser(id as string, parsedData.data);
       return ApiResponseHelper.success(res, { user: updatedUser }, "User updated successfully");
     } catch (error: any) {
