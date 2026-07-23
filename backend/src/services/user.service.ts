@@ -116,8 +116,8 @@ export class UserService {
     return null;
   }
 
-  async getAllUsers() {
-    const users = await userRepository.getAll();
+  async getAllUsers(query: any = {}) {
+    const users = await userRepository.getAll(query);
     return users.map(user => {
       const userObj = user.toObject();
       const { password, ...safeUser } = userObj;

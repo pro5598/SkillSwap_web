@@ -11,6 +11,7 @@ authRouter.post("/register", userController.createUser);
 authRouter.post("/login", userController.loginUser);
 authRouter.post("/logout", userController.logoutUser);
 
+userRouter.get("/", authorizedMiddleware, userController.getDiscoverUsers);
 userRouter.get("/me", authorizedMiddleware, userController.getCurrentUser);
 
 userRouter.put(

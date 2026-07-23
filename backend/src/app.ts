@@ -8,6 +8,9 @@ import { ApiResponseHelper } from "../src/utils/apihelper.util";
 import { authRouter, userRouter } from "../src/routes/user.route";
 import { categoryRouter } from "../src/routes/category.route";
 import { skillRouter } from "../src/routes/skill.route";
+import { swapRequestRouter } from "../src/routes/swap-request.route";
+import { messageRouter } from "../src/routes/message.route";
+import { sessionRouter } from "../src/routes/session.route";
 
 const app: Application = express();
 
@@ -41,6 +44,9 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/skills", skillRouter);
+app.use("/api/v1/swap-requests", swapRequestRouter);
+app.use("/api/v1/messages", messageRouter);
+app.use("/api/v1/sessions", sessionRouter);
 
 app.use((req: Request, res: Response) => {
   return ApiResponseHelper.error(res, "Requested API Route Not Found", 404);

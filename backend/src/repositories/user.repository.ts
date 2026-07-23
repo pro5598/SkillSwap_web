@@ -5,7 +5,7 @@ export interface IUserRepository {
   getUserByUsername(username: string): Promise<IUser | null>;
   createUser(user: Partial<IUser>): Promise<IUser>;
   getUserById(id: string): Promise<IUser | null>;
-  getAll(): Promise<IUser[]>;
+  getAll(query?: any): Promise<IUser[]>;
   update(id: string, user: Partial<IUser>): Promise<IUser | null>;
   delete(id: string): Promise<boolean>;
 
@@ -29,8 +29,8 @@ export class UserMongoRepository implements IUserRepository {
     return await UserModel.create(user);
   }
 
-  async getAll(): Promise<IUser[]> {
-    return await UserModel.find();
+  async getAll(query: any = {}): Promise<IUser[]> {
+    return await UserModel.find(query);
   }
 
   async update(id: string, user: Partial<IUser>): Promise<IUser | null> {
