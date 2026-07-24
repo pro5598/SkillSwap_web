@@ -5,9 +5,19 @@ export default function Navbar() {
     <header className="border-b border-[#E2E8F0] bg-[#FFFFFF] sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center space-x-2">
-          <Link href="/" className="text-2xl font-bold text-[#0D1236] tracking-tight">
-            Skill<span className="text-[#F4A261]">Swap</span>
+        <div className="flex items-center space-x-2.5">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2A367E] to-[#0D1236] flex items-center justify-center shadow-sm">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7 16L3 12L7 8" stroke="#F4A261" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M17 8L21 12L17 16" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 4L10 20" stroke="#F4A261" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <span className="text-2xl font-bold tracking-tight">
+              <span className="text-[#0D1236]">Skill</span>
+              <span className="text-[#F4A261]">Swap</span>
+            </span>
           </Link>
         </div>
 
