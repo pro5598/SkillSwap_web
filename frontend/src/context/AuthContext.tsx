@@ -7,6 +7,7 @@ import { RegisterFormData } from "../app/(auth)/register/schema";
 
 interface User {
   id: string;
+  _id?: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -39,17 +40,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkSession = async () => {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem("skillswap_auth_token") : null;
+      if (token) {
+        axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await axiosInstance.get("/user/me");
       const resData = response.data;
+      let userData = null;
       if (resData.data?.user) {
-        setUser(resData.data.user);
+        userData = resData.data.user;
       } else if (resData.data) {
-        setUser(resData.data);
+        userData = resData.data;
       } else {
-        setUser(resData);
+        userData = resData;
+      }
+      // Normalize ID: ensure both id and _id are always set
+      if (userData) {
+        userData.id = userData.id || userData._id;
+        userData._id = userData._id || userData.id;
+        setUser(userData);
       }
     } catch (error) {
       setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("skillswap_auth_token");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -63,12 +79,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await axiosInstance.post("/auth/login", data);
       const resData = response.data;
+      let userData = null;
       if (resData.data?.user) {
-        setUser(resData.data.user);
+        userData = resData.data.user;
       } else if (resData.data) {
-        setUser(resData.data);
+        userData = resData.data;
       } else {
-        setUser(resData);
+        userData = resData;
+      }
+      if (userData) {
+        userData.id = userData.id || userData._id;
+        userData._id = userData._id || userData.id;
+        setUser(userData);
+      }
+      
+      if (resData.data?.token) {
+        localStorage.setItem("skillswap_auth_token", resData.data.token);
+        axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${resData.data.token}`;
       }
     } catch (error: any) {
       const message = error.response?.data?.message || "Login failed";
@@ -82,12 +109,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { confirmPassword, ...registerData } = data;
       const response = await axiosInstance.post("/auth/register", registerData);
       const resData = response.data;
+      let userData = null;
       if (resData.data?.user) {
-        setUser(resData.data.user);
+        userData = resData.data.user;
       } else if (resData.data) {
-        setUser(resData.data);
+        userData = resData.data;
       } else {
-        setUser(resData);
+        userData = resData;
+      }
+      if (userData) {
+        userData.id = userData.id || userData._id;
+        userData._id = userData._id || userData.id;
+        setUser(userData);
+      }
+
+      if (resData.data?.token) {
+        localStorage.setItem("skillswap_auth_token", resData.data.token);
+        axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${resData.data.token}`;
       }
     } catch (error: any) {
       const message = error.response?.data?.message || "Registration failed";
@@ -99,6 +137,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await axiosInstance.post("/auth/logout");
       setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("skillswap_auth_token");
+      }
+      delete axiosInstance.defaults.headers.common["Authorization"];
     } catch (error) {
       console.error("Logout failed", error);
     }
