@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, ChangeEvent, FormEvent, useEffect } from "react";
+import { useState, useRef, ChangeEvent, FormEvent, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import axiosInstance from "@/api/axios";
 
@@ -44,10 +44,25 @@ export default function ProfilePage() {
       setSkillsOffered(user.skillsOffered?.join(", ") || "");
       setSkillsWanted(user.skillsWanted?.join(", ") || "");
       if (user.imageUrl) {
-        setPreviewImage(`http://localhost:5000${user.imageUrl}`);
+        setPreviewImage(`${user.imageUrl}`);
       }
     }
   }, [user]);
+
+  // Auto-dismiss messages after 5 seconds
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
+  useEffect(() => {
+    if (errorMsg) {
+      const timer = setTimeout(() => setErrorMsg(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMsg]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
