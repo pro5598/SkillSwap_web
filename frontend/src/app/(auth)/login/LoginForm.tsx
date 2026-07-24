@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginFormData } from "./schema";
@@ -12,6 +12,7 @@ import GuestRoute from "@/components/GuestRoute";
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -25,6 +26,8 @@ export default function LoginForm() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       await login(data);
+      // Redirect after successful login
+      router.push("/dashboard");
     } catch (error: any) {
       setError("root", { message: error.message });
     }
@@ -62,12 +65,12 @@ export default function LoginForm() {
           <label className="block text-sm font-semibold text-[#0D1236]">
             Password
           </label>
-          <a
-            href="#"
-            className="text-xs text-[#643000] font-medium hover:underline"
+          <span
+            className="text-xs text-[#643000] font-medium cursor-not-allowed opacity-50"
+            title="Coming soon"
           >
             Forgot Password?
-          </a>
+          </span>
         </div>
         <div className="relative">
           <input

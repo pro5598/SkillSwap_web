@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, RegisterFormData } from "./schema";
@@ -13,6 +13,7 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register: authRegister } = useAuth();
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -34,6 +35,8 @@ export default function RegisterForm() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       await authRegister(data);
+      // Redirect after successful registration
+      router.push("/dashboard");
     } catch (error: any) {
       setError("root", { message: error.message });
     }

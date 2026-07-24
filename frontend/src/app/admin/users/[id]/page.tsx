@@ -9,7 +9,7 @@ interface EditUserPageProps {
 
 async function fetchUser(id: string, cookieHeader: string) {
   try {
-    const res = await fetch(`http://127.0.0.1:5000/api/v1/user/admin/${id}`, {
+    const res = await fetch(`http://127.0.0.1:5002/api/v1/user/admin/${id}`, {
       headers: {
         "Content-Type": "application/json",
         Cookie: cookieHeader,
