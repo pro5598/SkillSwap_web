@@ -5,6 +5,7 @@ export interface ISession extends Omit<SessionType, "requesterId" | "providerId"
   _id: mongoose.Types.ObjectId;
   requesterId: mongoose.Types.ObjectId;
   providerId: mongoose.Types.ObjectId;
+  createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,7 +14,9 @@ const SessionMongoSchema: Schema = new Schema<ISession>(
   {
     requesterId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     providerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    scheduledAt: { type: Date, required: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: false },
+    skillName: { type: String, required: false },
+    scheduledAt: { type: Date, required: false },
     status: {
       type: String,
       enum: ["pending", "accepted", "declined", "completed", "cancelled"],

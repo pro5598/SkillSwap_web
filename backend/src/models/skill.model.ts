@@ -1,9 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { SkillType } from "../types/skill.type";
 
-export interface ISkill extends Omit<SkillType, 'category'>, Document {
+export interface ISkill extends SkillType, Document {
   _id: mongoose.Types.ObjectId;
-  category: mongoose.Types.ObjectId; // Make it an ObjectId referencing Category
+  isApproved: boolean;
+  proposedBy?: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -11,9 +12,10 @@ export interface ISkill extends Omit<SkillType, 'category'>, Document {
 const SkillMongoSchema: Schema = new Schema<ISkill>(
   {
     name: { type: String, required: true, unique: true, trim: true },
-    category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
     description: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
+    isApproved: { type: Boolean, default: false },
+    proposedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
   },
   {
     timestamps: true,

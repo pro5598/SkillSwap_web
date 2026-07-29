@@ -20,17 +20,17 @@ const UserMongoSchema: Schema = new Schema<IUser>(
     },
     username: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
     },
     phoneNumber: {
       type: String,
-      required: true,
       trim: true,
     },
-    password: { type: String, required: true },
+    password: { type: String },
+    googleId: { type: String, unique: true, sparse: true },
     role: { type: String, enum: ["admin", "user"], default: "user" },
     imageUrl: { type: String, required: false },
     bio: { type: String, trim: true, maxlength: 500 },
@@ -39,9 +39,14 @@ const UserMongoSchema: Schema = new Schema<IUser>(
     experienceLevel: { type: String, enum: ["Beginner", "Intermediate", "Expert"] },
     location: { type: String, trim: true },
     availabilitySchedule: { type: String, trim: true },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
+    subscriptionStatus: { type: String, enum: ["free", "pro"], default: "free" },
+    stripeCustomerId: { type: String },
+    stripeSubscriptionId: { type: String },
   },
   {
-    timestamps: true, // Automatically manages createdAt and updatedAt
+    timestamps: true,
   },
 );
 

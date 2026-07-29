@@ -18,7 +18,7 @@ const SwapRequestMongoSchema: Schema = new Schema<ISwapRequest>(
     message: { type: String, maxlength: 1000, trim: true },
     status: {
       type: String,
-      enum: ["pending", "accepted", "declined", "cancelled"],
+      enum: ["pending", "accepted", "declined", "cancelled", "completed"],
       default: "pending",
     },
   },
