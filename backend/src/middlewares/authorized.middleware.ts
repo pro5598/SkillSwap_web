@@ -6,14 +6,6 @@ import { UserMongoRepository } from "../repositories/user.repository";
 import { HttpException } from "../exceptions/http-exception";
 import { ApiResponseHelper } from "../utils/apihelper.util";
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: Record<string, any> | IUser;
-    }
-  }
-}
-
 const userRepository = new UserMongoRepository();
 
 export const authorizedMiddleware = async (
