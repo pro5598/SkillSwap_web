@@ -11,7 +11,7 @@ export default function GuestRoute({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (!isLoading && user) {
       if (user.role === "admin") {
-        router.push("/admin/users");
+        router.push("/admin");
       } else {
         router.push("/dashboard");
       }

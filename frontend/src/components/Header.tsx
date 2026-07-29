@@ -6,9 +6,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-lg transition-transform group-hover:scale-105" style={{ backgroundColor: "#2A367E" }}>
-            S
-          </div>
+          <img src="/logo.png" alt="SkillSwap Logo" className="w-9 h-9 object-contain transition-transform group-hover:scale-105" />
           <span className="text-xl font-bold tracking-tight" style={{ color: "#0D1236" }}>
             Skill<span style={{ color: "#F4A261" }}>Swap</span>
           </span>
