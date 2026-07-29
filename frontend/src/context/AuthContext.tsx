@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import axiosInstance from "../api/axios";
 import { LoginFormData } from "../app/(auth)/login/schema";
 import { RegisterFormData } from "../app/(auth)/register/schema";
@@ -21,6 +21,7 @@ interface User {
   experienceLevel?: string;
   location?: string;
   availabilitySchedule?: string;
+  subscriptionStatus?: "free" | "pro";
 }
 
 interface AuthContextType {
@@ -28,6 +29,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (data: LoginFormData) => Promise<void>;
   register: (data: RegisterFormData) => Promise<void>;
+  googleLogin: (credential: string) => Promise<void>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
 }
@@ -38,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const checkSession = async () => {
+  const checkSession = useCallback(async () => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem("skillswap_auth_token") : null;
       if (token) {
@@ -69,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     checkSession();
@@ -98,6 +100,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${resData.data.token}`;
       }
     } catch (error: any) {
+      if (!error.response) {
+        throw new Error(
+          "Unable to connect to the server. Make sure the backend is running (npm run dev in the backend folder)."
+        );
+      }
       const message = error.response?.data?.message || "Login failed";
       throw new Error(message);
     }
@@ -133,6 +140,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const googleLogin = async (credential: string) => {
+    try {
+      const response = await axiosInstance.post("/auth/google", { credential });
+      const resData = response.data;
+      let userData = null;
+      if (resData.data?.user) {
+        userData = resData.data.user;
+      } else if (resData.data) {
+        userData = resData.data;
+      } else {
+        userData = resData;
+      }
+      if (userData) {
+        userData.id = userData.id || userData._id;
+        userData._id = userData._id || userData.id;
+        setUser(userData);
+      }
+
+      if (resData.data?.token) {
+        localStorage.setItem("skillswap_auth_token", resData.data.token);
+        axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${resData.data.token}`;
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Google login failed";
+      throw new Error(message);
+    }
+  };
+
   const logout = async () => {
     try {
       await axiosInstance.post("/auth/logout");
@@ -147,7 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, checkSession }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, googleLogin, logout, checkSession }}>
       {children}
     </AuthContext.Provider>
   );

@@ -15,7 +15,9 @@ export default function AdminLayout({
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && user && user.role !== "admin") {
+    if (!isLoading && !user) {
+      router.push("/");
+    } else if (!isLoading && user && user.role !== "admin") {
       router.push("/dashboard");
     }
   }, [user, isLoading, router]);
@@ -29,7 +31,11 @@ export default function AdminLayout({
   }
 
   if (!user || user.role !== "admin") {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FE]">
+        <div className="w-8 h-8 border-4 border-[#2A367E] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   return (
