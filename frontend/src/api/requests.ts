@@ -15,7 +15,7 @@ export const sendSwapRequest = async (data: { receiverId: string; skillOffered: 
   return response.data;
 };
 
-export const respondToSwapRequest = async (id: string, status: "accepted" | "declined" | "cancelled") => {
-  const response = await axiosInstance.patch(`/swap-requests/${id}/status`, { status });
+export const respondToSwapRequest = async (requestId: string, status: "accepted" | "declined" | "cancelled" | "completed") => {
+  const response = await axiosInstance.patch(`/swap-requests/${requestId}/status`, { status });
   return response.data;
 };

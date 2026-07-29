@@ -1,12 +1,10 @@
 import axiosInstance from "./axios";
 
-export const createSession = async (data: {
-  providerId: string;
+export const scheduleSession = async (sessionId: string, data: {
   scheduledAt: string;
   meetingDetails?: string;
-  notes?: string;
 }) => {
-  const response = await axiosInstance.post("/sessions", data);
+  const response = await axiosInstance.patch(`/sessions/${sessionId}/schedule`, data);
   return response.data;
 };
 
@@ -17,5 +15,10 @@ export const getMySessions = async () => {
 
 export const updateSessionStatus = async (sessionId: string, status: string) => {
   const response = await axiosInstance.patch(`/sessions/${sessionId}/status`, { status });
+  return response.data;
+};
+
+export const createFollowUpSession = async (sessionId: string, data?: { scheduledAt: string, meetingDetails: string }) => {
+  const response = await axiosInstance.post(`/sessions/${sessionId}/follow-up`, data || {});
   return response.data;
 };
