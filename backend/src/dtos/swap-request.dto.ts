@@ -10,7 +10,7 @@ export const CreateSwapRequestDto = z.object({
 export type CreateSwapRequestDtoType = z.infer<typeof CreateSwapRequestDto>;
 
 export const UpdateSwapRequestStatusDto = z.object({
-  status: z.enum(["accepted", "declined", "cancelled"]),
+  status: z.enum(["accepted", "declined", "cancelled", "completed"]),
 });
 
 export type UpdateSwapRequestStatusDtoType = z.infer<typeof UpdateSwapRequestStatusDto>;
