@@ -9,10 +9,14 @@ const userController = new UserController();
 
 authRouter.post("/register", userController.createUser);
 authRouter.post("/login", userController.loginUser);
+authRouter.post("/google", userController.googleLogin);
 authRouter.post("/logout", userController.logoutUser);
+authRouter.post("/forgot-password", userController.forgotPassword);
+authRouter.post("/reset-password", userController.resetPassword);
 
 userRouter.get("/", authorizedMiddleware, userController.getDiscoverUsers);
 userRouter.get("/me", authorizedMiddleware, userController.getCurrentUser);
+userRouter.get("/me/recommendations", authorizedMiddleware, userController.getRecommendations);
 
 userRouter.put(
   "/update",
@@ -22,6 +26,7 @@ userRouter.put(
 );
 
 // Admin Routes
+userRouter.get("/admin/stats", authorizedMiddleware, adminMiddleware, userController.getAdminStats);
 userRouter.get("/admin/all", authorizedMiddleware, adminMiddleware, userController.getAllUsers);
 userRouter.get("/admin/:id", authorizedMiddleware, adminMiddleware, userController.getUserById);
 userRouter.post("/admin/create", authorizedMiddleware, adminMiddleware, userController.adminCreateUser);
