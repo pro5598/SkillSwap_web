@@ -4,10 +4,14 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./configs/constant";
 import { MessageModel } from "./models/message.model";
 import { SwapRequestModel } from "./models/swap-request.model";
-import mongoose from "mongoose";
+
+const userConnections: Record<string, number> = {};
+let ioInstance: Server | null = null;
+
+export const getIO = (): Server | null => ioInstance;
 
 export const initializeSocket = (httpServer: HttpServer) => {
-  const io = new Server(httpServer, {
+  ioInstance = new Server(httpServer, {
     cors: {
       origin: true,
       methods: ["GET", "POST"],
@@ -16,7 +20,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
   });
 
   // Middleware for authentication
-  io.use((socket, next) => {
+  ioInstance.use((socket, next) => {
     console.log("Socket connection attempt:", socket.id);
     let token = socket.handshake.auth.token;
     
@@ -46,22 +50,37 @@ export const initializeSocket = (httpServer: HttpServer) => {
     }
   });
 
-  io.on("connection", (socket: Socket) => {
-    console.log(`Socket connected: ${socket.id}, User ID: ${socket.data.user.id}`);
+  ioInstance.on("connection", (socket: Socket) => {
+    const userId = socket.data.user.id;
+    console.log(`Socket connected: ${socket.id}, User ID: ${userId}`);
 
     // Join a personal room to receive messages
-    socket.join(socket.data.user.id);
+    socket.join(userId);
+
+    // Track online status
+    if (!userConnections[userId]) {
+      userConnections[userId] = 0;
+    }
+    userConnections[userId]++;
+    
+    if (userConnections[userId] === 1) {
+      socket.broadcast.emit("user_online", userId);
+    }
+    
+    // Send currently online users to this socket
+    const onlineUsers = Object.keys(userConnections).filter(id => userConnections[id] > 0);
+    socket.emit("online_users", onlineUsers);
 
     socket.on("send_message", async (data: { receiverId: string; content: string; fileUrl?: string; fileType?: string }, callback) => {
       try {
         const { receiverId, content, fileUrl, fileType } = data;
         const senderId = socket.data.user.id;
 
-        // Check if there's an accepted swap request between these users
+        // Check if there's an accepted or completed swap request between these users
         const swapRequest = await SwapRequestModel.findOne({
           $or: [
-            { senderId, receiverId, status: "accepted" },
-            { senderId: receiverId, receiverId: senderId, status: "accepted" },
+            { senderId, receiverId, status: { $in: ["accepted", "completed"] } },
+            { senderId: receiverId, receiverId: senderId, status: { $in: ["accepted", "completed"] } },
           ]
         });
 
@@ -81,7 +100,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
         await message.save();
 
         // Emit to the receiver's personal room
-        io.to(receiverId).emit("receive_message", message);
+        ioInstance!.to(receiverId).emit("receive_message", message);
 
         // Emit back to sender so their UI can update immediately with DB ID and timestamp
         socket.emit("receive_message", message);
@@ -95,8 +114,16 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
     socket.on("disconnect", () => {
       console.log(`Socket disconnected: ${socket.id}`);
+      
+      if (userConnections[userId]) {
+        userConnections[userId]--;
+        if (userConnections[userId] === 0) {
+          delete userConnections[userId];
+          socket.broadcast.emit("user_offline", userId);
+        }
+      }
     });
   });
 
-  return io;
+  return ioInstance;
 };
