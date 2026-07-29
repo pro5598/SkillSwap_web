@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getReceivedRequests, getSentRequests, respondToSwapRequest } from "@/api/requests";
+import { submitReview } from "@/api/reviews";
+import { Star } from "lucide-react";
 import Link from "next/link";
 
 interface User {
@@ -31,6 +33,10 @@ export default function RequestsPage() {
   const [sentRequests, setSentRequests] = useState<SwapRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reviewModal, setReviewModal] = useState<{ swapRequestId: string; partnerName: string } | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   const fetchRequests = async () => {
     try {
@@ -55,9 +61,14 @@ export default function RequestsPage() {
     }
   }, [user]);
 
-  const handleRespond = async (id: string, status: "accepted" | "declined" | "cancelled") => {
+  const handleRespond = async (id: string, status: "accepted" | "declined" | "cancelled" | "completed", partnerName?: string) => {
     try {
       await respondToSwapRequest(id, status);
+      if (status === "completed" && partnerName) {
+        setReviewModal({ swapRequestId: id, partnerName });
+        setReviewRating(5);
+        setReviewComment("");
+      }
       fetchRequests(); // Refresh the lists
     } catch (err: any) {
       setError(err.response?.data?.message || `Failed to ${status} request`);
@@ -65,12 +76,29 @@ export default function RequestsPage() {
     }
   };
 
+  const handleSubmitReview = async (skip: boolean) => {
+    if (!reviewModal) return;
+    if (!skip) {
+      try {
+        setReviewSubmitting(true);
+        await submitReview({ swapRequestId: reviewModal.swapRequestId, rating: reviewRating, comment: reviewComment });
+      } catch (error) {
+        console.error("Failed to submit review", error);
+      } finally {
+        setReviewSubmitting(false);
+      }
+    }
+    setReviewModal(null);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
         return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">Pending</span>;
       case "accepted":
-        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">Accepted</span>;
+        return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">In Progress</span>;
+      case "completed":
+        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">Completed</span>;
       case "declined":
         return <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-medium">Declined</span>;
       case "cancelled":
@@ -93,6 +121,39 @@ export default function RequestsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Review Modal */}
+      {reviewModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-bold text-[#0D1236] mb-1">Rate this Swap Partnership</h2>
+            <p className="text-sm text-gray-500 mb-4">How was your overall skill swap with {reviewModal.partnerName}?</p>
+            <div className="flex gap-1 mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button key={star} onClick={() => setReviewRating(star)}>
+                  <Star size={28} className={star <= reviewRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="Leave a comment (optional)"
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg p-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500 mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => handleSubmitReview(true)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition">Skip</button>
+              <button
+                onClick={() => handleSubmitReview(false)}
+                disabled={reviewSubmitting}
+                className="px-4 py-2 bg-[#2A367E] text-white text-sm rounded-lg hover:bg-[#1a2253] transition disabled:opacity-50"
+              >
+                {reviewSubmitting ? "Submitting..." : "Submit Review"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-[#0D1236]">Swap Requests</h1>
         <p className="text-gray-500 mt-1">Manage your skill exchange proposals.</p>
@@ -161,6 +222,14 @@ export default function RequestsPage() {
                       </button>
                     </div>
                   )}
+                  {req.status === "accepted" && (
+                    <button
+                      onClick={() => handleRespond(req._id, "completed", `${req.senderId.firstName} ${req.senderId.lastName}`)}
+                      className="px-4 py-1.5 bg-green-50 text-green-700 text-sm rounded-lg hover:bg-green-100 transition border border-green-200"
+                    >
+                      End Partnership
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -205,6 +274,14 @@ export default function RequestsPage() {
                         Cancel Request
                       </button>
                     </div>
+                  )}
+                  {req.status === "accepted" && (
+                    <button
+                      onClick={() => handleRespond(req._id, "completed", `${req.receiverId.firstName} ${req.receiverId.lastName}`)}
+                      className="px-4 py-1.5 bg-green-50 text-green-700 text-sm rounded-lg hover:bg-green-100 transition border border-green-200"
+                    >
+                      End Partnership
+                    </button>
                   )}
                 </div>
               </div>

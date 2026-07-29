@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getAllUsers } from "@/api/users";
-import { sendSwapRequest } from "@/api/requests";
+import { sendSwapRequest, getReceivedRequests, getSentRequests } from "@/api/requests";
+import { getReviewsForUser } from "@/api/reviews";
 
 interface User {
   _id: string;
@@ -23,7 +24,9 @@ export default function DiscoverPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  
+  const [ratings, setRatings] = useState<Record<string, { avg: number; total: number }>>({});
+  const [swapStatusMap, setSwapStatusMap] = useState<Record<string, string>>({});
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [skillOffered, setSkillOffered] = useState("");
@@ -37,19 +40,67 @@ export default function DiscoverPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await getAllUsers();
-        // Filter out current user and admin users from the list
+        const [res, receivedRes, sentRes] = await Promise.all([
+          getAllUsers(),
+          getReceivedRequests(),
+          getSentRequests(),
+        ]);
         const otherUsers = res.data.users.filter(
           (u: User) => u._id !== currentUser?._id && u._id !== currentUser?.id && u.role !== "admin"
         );
         setUsers(otherUsers);
+
+        // Build swap status map
+        const statusMap: Record<string, string> = {};
+        
+        // Helper to prioritize status (accepted > pending > completed > declined > cancelled)
+        const getPriority = (status: string) => {
+          switch (status) {
+            case "accepted": return 5;
+            case "pending": return 4;
+            case "completed": return 3;
+            case "declined": return 2;
+            case "cancelled": return 1;
+            default: return 0;
+          }
+        };
+
+        const processRequest = (req: any, otherUserId: string) => {
+          const currentStatus = statusMap[otherUserId];
+          if (!currentStatus || getPriority(req.status) > getPriority(currentStatus)) {
+            statusMap[otherUserId] = req.status;
+          }
+        };
+
+        receivedRes.data.requests.forEach((req: any) => {
+          processRequest(req, req.senderId._id);
+        });
+
+        sentRes.data.requests.forEach((req: any) => {
+          processRequest(req, req.receiverId._id);
+        });
+
+        setSwapStatusMap(statusMap);
+
+        // Fetch ratings for all users
+        const ratingsMap: Record<string, { avg: number; total: number }> = {};
+        const results = await Promise.allSettled(
+          otherUsers.map((u: User) => getReviewsForUser(u._id))
+        );
+        results.forEach((result, i) => {
+          if (result.status === "fulfilled") {
+            const d = result.value.data;
+            ratingsMap[otherUsers[i]._id] = { avg: d.averageRating || 0, total: d.total || 0 };
+          }
+        });
+        setRatings(ratingsMap);
       } catch (err: any) {
         setError(err.response?.data?.message || "Failed to load users");
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     if (currentUser) {
       fetchUsers();
     }
@@ -180,6 +231,13 @@ export default function DiscoverPage() {
                 <div>
                   <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">{u.firstName} {u.lastName}</h3>
                   <p className="text-sm text-gray-500">{u.experienceLevel || "Enthusiast"}</p>
+                  {ratings[u._id] && ratings[u._id].total > 0 && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <svg className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      <span className="text-sm font-medium text-gray-700">{ratings[u._id].avg}</span>
+                      <span className="text-xs text-gray-400">({ratings[u._id].total})</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -202,12 +260,20 @@ export default function DiscoverPage() {
                 </div>
               </div>
               
-              <button 
-                onClick={() => handleOpenModal(u)}
-                className="w-full py-2 bg-[#0D1236] text-white rounded-lg hover:bg-[#1a2359] transition"
-              >
-                Send Request
-              </button>
+              {swapStatusMap[u._id] === "pending" || swapStatusMap[u._id] === "accepted" ? (
+                <div className={`w-full py-2 rounded-lg text-center font-medium transition cursor-not-allowed
+                  ${swapStatusMap[u._id] === "accepted" ? "bg-green-50 text-green-700 border border-green-200" : "bg-yellow-50 text-yellow-700 border border-yellow-200"}
+                `}>
+                  {swapStatusMap[u._id] === "accepted" ? "Swap in Progress" : "Request Pending"}
+                </div>
+              ) : (
+                <button 
+                  onClick={() => handleOpenModal(u)}
+                  className="w-full py-2 bg-[#0D1236] text-white rounded-lg hover:bg-[#1a2359] transition"
+                >
+                  Send Request
+                </button>
+              )}
             </div>
           ))
         )}

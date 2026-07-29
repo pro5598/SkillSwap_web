@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getReceivedRequests, getSentRequests } from "@/api/requests";
-import { createSession, getMySessions, updateSessionStatus } from "@/api/sessions";
-import { Calendar, Clock, Video, User as UserIcon, Check, X } from "lucide-react";
+import { getMySessions, updateSessionStatus, scheduleSession, createFollowUpSession } from "@/api/sessions";
+import { Calendar, Clock, Video, User as UserIcon, Check, X, Star } from "lucide-react";
 import { format } from "date-fns";
 
 type Contact = {
@@ -16,22 +16,28 @@ type Session = {
   _id: string;
   requesterId: { _id: string; firstName: string; lastName: string; imageUrl?: string };
   providerId: { _id: string; firstName: string; lastName: string; imageUrl?: string };
-  scheduledAt: string;
+  skillName?: string;
+  scheduledAt?: string;
   status: "pending" | "accepted" | "declined" | "completed" | "cancelled";
   meetingDetails?: string;
+  notes?: string;
+  createdBy?: string;
+  createdAt: string;
 };
 
 export default function SessionsPage() {
   const { user } = useAuth();
-  const [contacts, setContacts] = useState<Contact[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Form State
-  const [selectedContactId, setSelectedContactId] = useState("");
+  const [selectedSessionId, setSelectedSessionId] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [meetingDetails, setMeetingDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
+  const [followUpSessionId, setFollowUpSessionId] = useState("");
+  const [followUpScheduledAt, setFollowUpScheduledAt] = useState("");
+  const [followUpMeetingDetails, setFollowUpMeetingDetails] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -40,38 +46,8 @@ export default function SessionsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [receivedRes, sentRes, sessionsRes] = await Promise.all([
-        getReceivedRequests(),
-        getSentRequests(),
-        getMySessions(),
-      ]);
-
+      const sessionsRes = await getMySessions();
       setSessions(sessionsRes.data.sessions);
-
-      const acceptedContacts: Contact[] = [];
-
-      receivedRes.data.requests.forEach((req: any) => {
-        if (req.status === "accepted") {
-          acceptedContacts.push({
-            id: req.senderId._id,
-            name: `${req.senderId.firstName} ${req.senderId.lastName}`,
-          });
-        }
-      });
-
-      sentRes.data.requests.forEach((req: any) => {
-        if (req.status === "accepted") {
-          acceptedContacts.push({
-            id: req.receiverId._id,
-            name: `${req.receiverId.firstName} ${req.receiverId.lastName}`,
-          });
-        }
-      });
-
-      const uniqueContacts = acceptedContacts.filter((contact, index, self) =>
-        index === self.findIndex((t) => t.id === contact.id)
-      );
-      setContacts(uniqueContacts);
     } catch (error) {
       console.error("Failed to fetch data", error);
     } finally {
@@ -79,25 +55,24 @@ export default function SessionsPage() {
     }
   };
 
-  const handleCreateSession = async (e: React.FormEvent) => {
+  const handleScheduleSession = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedContactId || !scheduledAt) return;
+    if (!selectedSessionId || !scheduledAt) return;
 
     try {
       setSubmitting(true);
-      await createSession({
-        providerId: selectedContactId,
+      await scheduleSession(selectedSessionId, {
         scheduledAt,
         meetingDetails,
       });
       // Reset form
-      setSelectedContactId("");
+      setSelectedSessionId("");
       setScheduledAt("");
       setMeetingDetails("");
       // Refresh sessions
       fetchData();
     } catch (error) {
-      console.error("Failed to create session", error);
+      console.error("Failed to schedule session", error);
     } finally {
       setSubmitting(false);
     }
@@ -106,9 +81,35 @@ export default function SessionsPage() {
   const handleUpdateStatus = async (sessionId: string, status: string) => {
     try {
       await updateSessionStatus(sessionId, status);
-      fetchData(); // Refresh list
+      fetchData();
     } catch (error) {
       console.error("Failed to update status", error);
+    }
+  };
+
+  const handleFollowUp = (sessionId: string) => {
+    setFollowUpSessionId(sessionId);
+    setFollowUpScheduledAt("");
+    setFollowUpMeetingDetails("");
+    setIsFollowUpModalOpen(true);
+  };
+
+  const handleFollowUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!followUpSessionId) return;
+
+    try {
+      setSubmitting(true);
+      await createFollowUpSession(followUpSessionId, {
+        scheduledAt: followUpScheduledAt,
+        meetingDetails: followUpMeetingDetails,
+      });
+      setIsFollowUpModalOpen(false);
+      fetchData();
+    } catch (error) {
+      console.error("Failed to create follow up session", error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -137,21 +138,30 @@ export default function SessionsPage() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] overflow-hidden">
             <div className="p-4 border-b border-[#E2E8F0] bg-gray-50">
-              <h2 className="font-semibold text-[#0D1236]">Propose a Session</h2>
+              <h2 className="font-semibold text-[#0D1236]">Schedule a Session</h2>
             </div>
-            <form onSubmit={handleCreateSession} className="p-4 space-y-4">
+            <form onSubmit={handleScheduleSession} className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Partner</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select Pending Session</label>
                 <select
-                  value={selectedContactId}
-                  onChange={(e) => setSelectedContactId(e.target.value)}
+                  value={selectedSessionId}
+                  onChange={(e) => setSelectedSessionId(e.target.value)}
                   required
                   className="w-full border border-gray-300 rounded-lg p-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="" disabled>Select an accepted match</option>
-                  {contacts.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
+                  <option value="" disabled>Select a session to schedule</option>
+                  {sessions
+                    .filter((s) => s.status === "pending" && !s.scheduledAt)
+                    .map((s) => {
+                      const isReq = s.requesterId._id === user?.id || s.requesterId._id === user?._id;
+                      const role = isReq ? "Learn" : "Teach";
+                      const part = isReq ? s.providerId : s.requesterId;
+                      return (
+                        <option key={s._id} value={s._id}>
+                          {role} {s.skillName} (with {part.firstName})
+                        </option>
+                      );
+                    })}
                 </select>
               </div>
 
@@ -179,10 +189,10 @@ export default function SessionsPage() {
 
               <button
                 type="submit"
-                disabled={submitting || !selectedContactId || !scheduledAt}
+                disabled={submitting || !selectedSessionId || !scheduledAt}
                 className="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                {submitting ? "Sending Proposal..." : "Send Proposal"}
+                {submitting ? "Saving Schedule..." : "Save Schedule"}
               </button>
             </form>
           </div>
@@ -203,7 +213,7 @@ export default function SessionsPage() {
               {sessions.map((session) => {
                 const isRequester = session.requesterId._id === user?.id || session.requesterId._id === user?._id;
                 const partner = isRequester ? session.providerId : session.requesterId;
-                const date = new Date(session.scheduledAt);
+                const date = session.scheduledAt ? new Date(session.scheduledAt) : null;
                 
                 return (
                   <div key={session._id} className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-5 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
@@ -217,9 +227,18 @@ export default function SessionsPage() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-[#0D1236] text-lg">Swap with {partner.firstName} {partner.lastName}</h3>
+                        <p className="text-sm font-medium text-blue-600 bg-blue-50 inline-block px-2 py-0.5 rounded-md mt-1 mb-1">
+                          {isRequester ? "Learning" : "Teaching"}: {session.skillName || "General Swap"}
+                        </p>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mt-1">
-                          <span className="flex items-center gap-1"><Calendar size={14} /> {format(date, "MMM dd, yyyy")}</span>
-                          <span className="flex items-center gap-1"><Clock size={14} /> {format(date, "h:mm a")}</span>
+                          {date ? (
+                            <>
+                              <span className="flex items-center gap-1"><Calendar size={14} /> {format(date, "MMM dd, yyyy")}</span>
+                              <span className="flex items-center gap-1"><Clock size={14} /> {format(date, "h:mm a")}</span>
+                            </>
+                          ) : (
+                            <span className="flex items-center gap-1 text-amber-600"><Calendar size={14} /> Unscheduled</span>
+                          )}
                           {session.meetingDetails && (
                             <span className="flex items-center gap-1"><Video size={14} /> {session.meetingDetails}</span>
                           )}
@@ -237,7 +256,7 @@ export default function SessionsPage() {
                         {session.status}
                       </div>
 
-                      {session.status === "pending" && !isRequester && (
+                      {session.status === "pending" && (session.createdBy ? session.createdBy !== (user?.id || user?._id) : !isRequester) && (
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleUpdateStatus(session._id, "accepted")}
@@ -254,6 +273,10 @@ export default function SessionsPage() {
                             <X size={16} />
                           </button>
                         </div>
+                      )}
+
+                      {session.status === "pending" && (session.createdBy ? session.createdBy === (user?.id || user?._id) : isRequester) && (
+                        <span className="text-sm text-gray-500 italic">Waiting for partner...</span>
                       )}
                       
                       {session.status === "accepted" && (
@@ -274,6 +297,14 @@ export default function SessionsPage() {
                            </button>
                          </div>
                       )}
+                      {(session.status === "completed" || session.status === "accepted") && (
+                        <button
+                          onClick={() => handleFollowUp(session._id)}
+                          className="ml-2 text-blue-600 hover:text-blue-700 text-sm font-medium border border-blue-200 hover:border-blue-400 px-2 py-1 rounded transition whitespace-nowrap"
+                        >
+                          + Follow-up
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -282,6 +313,64 @@ export default function SessionsPage() {
           )}
         </div>
       </div>
+
+      {/* Follow Up Session Modal */}
+      {isFollowUpModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-gray-900">Schedule Follow-up</h2>
+              <button onClick={() => setIsFollowUpModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleFollowUpSubmit} className="p-6 space-y-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Propose a date and time for your next follow-up session.
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date & Time (Optional)</label>
+                <input
+                  type="datetime-local"
+                  value={followUpScheduledAt}
+                  onChange={(e) => setFollowUpScheduledAt(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Link / Location (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Zoom link, Google Meet, or coffee shop"
+                  value={followUpMeetingDetails}
+                  onChange={(e) => setFollowUpMeetingDetails(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end space-x-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsFollowUpModalOpen(false)}
+                  className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={submitting}
+                  className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                >
+                  {submitting ? "Saving..." : "Create Follow-up"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

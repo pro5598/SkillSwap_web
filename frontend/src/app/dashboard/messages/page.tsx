@@ -33,6 +33,7 @@ export default function MessagesPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -70,8 +71,31 @@ export default function MessagesPage() {
       }
     });
 
+    socket.on("online_users", (users: string[]) => {
+      setOnlineUsers(new Set(users));
+    });
+
+    socket.on("user_online", (userId: string) => {
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.add(userId);
+        return newSet;
+      });
+    });
+
+    socket.on("user_offline", (userId: string) => {
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
+    });
+
     return () => {
       socket.off("receive_message");
+      socket.off("online_users");
+      socket.off("user_online");
+      socket.off("user_offline");
     };
   }, [socket, selectedContact]);
 
@@ -90,7 +114,7 @@ export default function MessagesPage() {
       const acceptedContacts: Contact[] = [];
 
       receivedRes.data.requests.forEach((req: any) => {
-        if (req.status === "accepted") {
+        if (req.status === "accepted" || req.status === "completed") {
           acceptedContacts.push({
             id: req.senderId._id,
             name: `${req.senderId.firstName} ${req.senderId.lastName}`,
@@ -100,7 +124,7 @@ export default function MessagesPage() {
       });
 
       sentRes.data.requests.forEach((req: any) => {
-        if (req.status === "accepted") {
+        if (req.status === "accepted" || req.status === "completed") {
           acceptedContacts.push({
             id: req.receiverId._id,
             name: `${req.receiverId.firstName} ${req.receiverId.lastName}`,
@@ -238,11 +262,16 @@ export default function MessagesPage() {
                   selectedContact?.id === contact.id ? "bg-blue-50 border-l-4 border-l-blue-600" : "hover:bg-gray-100 border-l-4 border-l-transparent"
                 }`}
               >
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                  {contact.profilePicture ? (
-                    <img src={contact.profilePicture} alt={contact.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <UserIcon size={20} className="text-gray-500" />
+                <div className="relative w-10 h-10 flex-shrink-0">
+                  <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                    {contact.profilePicture ? (
+                      <img src={contact.profilePicture} alt={contact.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <UserIcon size={20} className="text-gray-500" />
+                    )}
+                  </div>
+                  {onlineUsers.has(contact.id) && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                   )}
                 </div>
                 <div>
@@ -259,14 +288,24 @@ export default function MessagesPage() {
         {selectedContact ? (
           <>
             <div className="p-4 border-b border-[#E2E8F0] flex items-center gap-3 bg-white shadow-sm z-10">
-              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                {selectedContact.profilePicture ? (
-                  <img src={selectedContact.profilePicture} alt={selectedContact.name} className="w-full h-full object-cover" />
-                ) : (
-                  <UserIcon size={20} className="text-gray-500" />
+              <div className="relative w-10 h-10 flex-shrink-0">
+                <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  {selectedContact.profilePicture ? (
+                    <img src={selectedContact.profilePicture} alt={selectedContact.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <UserIcon size={20} className="text-gray-500" />
+                  )}
+                </div>
+                {onlineUsers.has(selectedContact.id) && (
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                 )}
               </div>
-              <h3 className="font-bold text-[#0D1236]">{selectedContact.name}</h3>
+              <div>
+                <h3 className="font-bold text-[#0D1236]">{selectedContact.name}</h3>
+                {onlineUsers.has(selectedContact.id) && (
+                  <p className="text-xs text-green-600 font-medium">Online</p>
+                )}
+              </div>
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">

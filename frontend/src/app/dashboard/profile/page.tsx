@@ -3,6 +3,17 @@
 import { useState, useRef, ChangeEvent, FormEvent, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import axiosInstance from "@/api/axios";
+import { getReviewsForUser } from "@/api/reviews";
+import { getAllSkills, proposeSkill, searchSkills } from "@/api/skills";
+import MultiSelect from "@/components/MultiSelect";
+
+interface Review {
+  _id: string;
+  reviewerId: { firstName: string; lastName: string; imageUrl?: string };
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
 
 export default function ProfilePage() {
   const { user, checkSession } = useAuth();
@@ -22,12 +33,16 @@ export default function ProfilePage() {
   const [experienceLevel, setExperienceLevel] = useState("");
   const [location, setLocation] = useState("");
   const [availabilitySchedule, setAvailabilitySchedule] = useState("");
-  const [skillsOffered, setSkillsOffered] = useState("");
-  const [skillsWanted, setSkillsWanted] = useState("");
+  const [skillsOffered, setSkillsOffered] = useState<string[]>([]);
+  const [skillsWanted, setSkillsWanted] = useState<string[]>([]);
+  
+  const [availableSkills, setAvailableSkills] = useState<{ value: string; label: string }[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [avgRating, setAvgRating] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,13 +56,35 @@ export default function ProfilePage() {
       setExperienceLevel(user.experienceLevel || "");
       setLocation(user.location || "");
       setAvailabilitySchedule(user.availabilitySchedule || "");
-      setSkillsOffered(user.skillsOffered?.join(", ") || "");
-      setSkillsWanted(user.skillsWanted?.join(", ") || "");
+      setSkillsOffered(user.skillsOffered || []);
+      setSkillsWanted(user.skillsWanted || []);
       if (user.imageUrl) {
         setPreviewImage(`${user.imageUrl}`);
       }
+
+      // Fetch reviews for this user
+      const userId = user._id || user.id;
+      if (userId) {
+        getReviewsForUser(userId).then((res) => {
+          setReviews(res.data?.reviews || []);
+          setAvgRating(res.data?.averageRating || 0);
+        }).catch(() => {});
+      }
     }
   }, [user]);
+
+  useEffect(() => {
+    // Fetch predefined skills created by admin
+    getAllSkills(false).then(res => {
+      if (res.data?.data?.skills) {
+        const options = res.data.data.skills.map((skill: any) => ({
+          value: skill.name,
+          label: skill.name
+        }));
+        setAvailableSkills(options);
+      }
+    }).catch(err => console.error("Failed to fetch skills", err));
+  }, []);
 
   // Auto-dismiss messages after 5 seconds
   useEffect(() => {
@@ -69,6 +106,42 @@ export default function ProfilePage() {
       const file = e.target.files[0];
       setProfileImage(file);
       setPreviewImage(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSearchSkills = useCallback(async (query: string) => {
+    const res = await searchSkills(query);
+    const skills = res.data?.data?.skills || [];
+    return skills.map((skill: { name: string }) => ({
+      value: skill.name,
+      label: skill.name,
+    }));
+  }, []);
+
+  const handleProposeSkill = async (skillName: string, type: 'offered' | 'wanted') => {
+    try {
+      const res = await proposeSkill(skillName);
+      if (res.data?.data?.skill) {
+        const newSkill = res.data.data.skill;
+        setAvailableSkills(prev => {
+          if (prev.find(s => s.value.toLowerCase() === newSkill.name.toLowerCase())) return prev;
+          return [...prev, { value: newSkill.name, label: newSkill.name }];
+        });
+        if (type === 'offered') {
+          setSkillsOffered(prev => {
+            if (prev.some(s => s.toLowerCase() === newSkill.name.toLowerCase())) return prev;
+            return [...prev, newSkill.name];
+          });
+        } else {
+          setSkillsWanted(prev => {
+            if (prev.some(s => s.toLowerCase() === newSkill.name.toLowerCase())) return prev;
+            return [...prev, newSkill.name];
+          });
+        }
+        setSuccessMsg(`Skill "${newSkill.name}" added successfully.`);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || "Failed to add skill.");
     }
   };
 
@@ -95,14 +168,12 @@ export default function ProfilePage() {
       formData.append("location", location);
       formData.append("availabilitySchedule", availabilitySchedule);
       
-      if (skillsOffered) {
-        const skillsArray = skillsOffered.split(",").map(s => s.trim()).filter(s => s);
-        formData.append("skillsOffered", JSON.stringify(skillsArray));
+      if (skillsOffered.length > 0) {
+        formData.append("skillsOffered", JSON.stringify(skillsOffered));
       }
       
-      if (skillsWanted) {
-        const skillsArray = skillsWanted.split(",").map(s => s.trim()).filter(s => s);
-        formData.append("skillsWanted", JSON.stringify(skillsArray));
+      if (skillsWanted.length > 0) {
+        formData.append("skillsWanted", JSON.stringify(skillsWanted));
       }
 
       if (profileImage) {
@@ -298,23 +369,25 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-[#4A5568] mb-1">Skills Offered (comma separated)</label>
-                    <input
-                      type="text"
-                      value={skillsOffered}
-                      onChange={(e) => setSkillsOffered(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F4A261] focus:border-transparent outline-none transition-all text-black font-medium"
-                      placeholder="e.g. React, Python, Guitar"
+                    <MultiSelect 
+                      label="Skills Offered"
+                      options={availableSkills}
+                      selectedValues={skillsOffered}
+                      onChange={setSkillsOffered}
+                      onPropose={(val) => handleProposeSkill(val, 'offered')}
+                      onSearch={handleSearchSkills}
+                      placeholder="Select skills you can teach..."
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-[#4A5568] mb-1">Skills Wanted (comma separated)</label>
-                    <input
-                      type="text"
-                      value={skillsWanted}
-                      onChange={(e) => setSkillsWanted(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F4A261] focus:border-transparent outline-none transition-all text-black font-medium"
-                      placeholder="e.g. Spanish, SEO, Piano"
+                    <MultiSelect 
+                      label="Skills Wanted"
+                      options={availableSkills}
+                      selectedValues={skillsWanted}
+                      onChange={setSkillsWanted}
+                      onPropose={(val) => handleProposeSkill(val, 'wanted')}
+                      onSearch={handleSearchSkills}
+                      placeholder="Select skills you want to learn..."
                     />
                   </div>
                 </div>
@@ -383,6 +456,45 @@ export default function ProfilePage() {
           </div>
         </form>
       </div>
+
+      {/* Reviews Section */}
+      {reviews.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-[#E2E8F0] p-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-[#0D1236]">Reviews Received</h2>
+            <div className="flex items-center gap-1">
+              <svg className="w-5 h-5 text-yellow-400 fill-yellow-400" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span className="text-lg font-semibold text-gray-800">{avgRating}</span>
+              <span className="text-sm text-gray-500">({reviews.length} review{reviews.length !== 1 ? "s" : ""})</span>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {reviews.map((review) => (
+              <div key={review._id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+                    {review.reviewerId.imageUrl ? (
+                      <img src={review.reviewerId.imageUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-blue-600 font-bold text-sm">{review.reviewerId.firstName[0]}</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{review.reviewerId.firstName} {review.reviewerId.lastName}</p>
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg key={star} className={`w-3.5 h-3.5 ${star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      ))}
+                      <span className="text-xs text-gray-400 ml-2">{new Date(review.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+                {review.comment && <p className="text-sm text-gray-600 ml-11">{review.comment}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
