@@ -4,7 +4,8 @@ export interface SessionType {
   _id?: Types.ObjectId;
   requesterId: Types.ObjectId | string;
   providerId: Types.ObjectId | string;
-  scheduledAt: Date;
+  skillName: string;
+  scheduledAt?: Date;
   status: "pending" | "accepted" | "declined" | "completed" | "cancelled";
   meetingDetails?: string;
   notes?: string;

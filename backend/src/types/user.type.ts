@@ -26,13 +26,16 @@ export const UserSchema = z.object({
       "Username can only contain letters, numbers, and underscores",
     )
     .trim()
-    .lowercase(),
+    .lowercase()
+    .optional(),
   phoneNumber: z
     .string()
     .min(10, "Phone number must be at least 10 digits")
     .regex(/^\d+$/, "Phone number must contain only numbers")
-    .trim(),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
+    .trim()
+    .optional(),
+  password: z.string().min(6, "Password must be at least 6 characters long").optional(),
+  googleId: z.string().optional(),
   role: z.enum(["admin", "user"]).default("user"),
   imageUrl: z.string().optional(),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
@@ -41,6 +44,11 @@ export const UserSchema = z.object({
   experienceLevel: z.enum(["Beginner", "Intermediate", "Expert"]).optional(),
   location: z.string().optional(),
   availabilitySchedule: z.string().optional(),
+  resetPasswordToken: z.string().optional(),
+  resetPasswordExpires: z.date().optional(),
+  subscriptionStatus: z.enum(["free", "pro"]).default("free"),
+  stripeCustomerId: z.string().optional(),
+  stripeSubscriptionId: z.string().optional(),
 });
 
 export type UserType = z.infer<typeof UserSchema>;

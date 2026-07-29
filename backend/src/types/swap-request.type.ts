@@ -6,7 +6,7 @@ export const SwapRequestSchema = z.object({
   skillOffered: z.string().min(1, "Skill offered is required"),
   skillWanted: z.string().min(1, "Skill wanted is required"),
   message: z.string().max(1000, "Message cannot exceed 1000 characters").optional(),
-  status: z.enum(["pending", "accepted", "declined", "cancelled"]).default("pending"),
+  status: z.enum(["pending", "accepted", "declined", "cancelled", "completed"]).default("pending"),
 });
 
 export type SwapRequestType = z.infer<typeof SwapRequestSchema>;
