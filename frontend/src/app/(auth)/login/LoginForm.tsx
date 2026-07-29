@@ -8,10 +8,12 @@ import { loginSchema, LoginFormData } from "./schema";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import GuestRoute from "@/components/GuestRoute";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const { login, googleLogin } = useAuth();
   const router = useRouter();
   const {
     register,
@@ -26,10 +28,19 @@ export default function LoginForm() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       await login(data);
-      // Redirect after successful login
       router.push("/dashboard");
     } catch (error: any) {
       setError("root", { message: error.message });
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      setGoogleError(null);
+      await googleLogin(credentialResponse.credential);
+      router.push("/dashboard");
+    } catch (error: any) {
+      setGoogleError(error.message);
     }
   };
 
@@ -39,6 +50,11 @@ export default function LoginForm() {
         {errors.root && (
           <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
             {errors.root.message}
+          </div>
+        )}
+        {googleError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+            {googleError}
           </div>
         )}
       <div>
@@ -65,12 +81,12 @@ export default function LoginForm() {
           <label className="block text-sm font-semibold text-[#0D1236]">
             Password
           </label>
-          <span
-            className="text-xs text-[#643000] font-medium cursor-not-allowed opacity-50"
-            title="Coming soon"
+          <Link
+            href="/forgot-password"
+            className="text-xs text-[#643000] font-medium hover:underline"
           >
             Forgot Password?
-          </span>
+          </Link>
         </div>
         <div className="relative">
           <input
@@ -107,6 +123,23 @@ export default function LoginForm() {
       >
         {isSubmitting ? "Signing in..." : "Sign In"}
       </button>
+
+      <div className="flex items-center gap-3 my-2">
+        <div className="flex-1 h-px bg-[#E2E8F0]"></div>
+        <span className="text-xs text-[#4A5568] font-medium">or</span>
+        <div className="flex-1 h-px bg-[#E2E8F0]"></div>
+      </div>
+
+      <div className="flex justify-center w-full">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => setGoogleError("Google Sign-In failed. Please try again.")}
+          use_fedcm_for_prompt={false}
+          text="continue_with"
+          shape="rectangular"
+          width={400}
+        />
+      </div>
 
       <p className="text-center text-sm text-[#4A5568] mt-4">
         New to the platform?{" "}

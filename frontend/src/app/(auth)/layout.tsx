@@ -15,13 +15,7 @@ export default function AuthLayout({
           href="/"
           className="flex items-center gap-2.5 inline-block z-10"
         >
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#F4A261] to-[#e28f4f] flex items-center justify-center shadow-sm">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7 16L3 12L7 8" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M17 8L21 12L17 16" stroke="#0D1236" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M14 4L10 20" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </div>
+          <img src="/logo.png" alt="SkillSwap Logo" className="w-9 h-9 object-contain" />
           <span className="text-2xl font-bold tracking-tight text-[#FFFFFF]">
             Skill<span className="text-[#F4A261]">Swap</span>
           </span>
