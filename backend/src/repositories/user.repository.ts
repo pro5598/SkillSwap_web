@@ -3,6 +3,8 @@ import { UserModel, IUser } from "../models/user.model";
 export interface IUserRepository {
   getUserByEmail(email: string): Promise<IUser | null>;
   getUserByUsername(username: string): Promise<IUser | null>;
+  getUserByGoogleId(googleId: string): Promise<IUser | null>;
+  getUserByResetToken(hashedToken: string): Promise<IUser | null>;
   createUser(user: Partial<IUser>): Promise<IUser>;
   getUserById(id: string): Promise<IUser | null>;
   getAll(query?: any): Promise<IUser[]>;
@@ -23,6 +25,17 @@ export class UserMongoRepository implements IUserRepository {
 
   async getUserByUsername(username: string): Promise<IUser | null> {
     return await UserModel.findOne({ username: username.toLowerCase() });
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<IUser | null> {
+    return await UserModel.findOne({ googleId });
+  }
+
+  async getUserByResetToken(hashedToken: string): Promise<IUser | null> {
+    return await UserModel.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: new Date() },
+    });
   }
 
   async createUser(user: Partial<IUser>): Promise<IUser> {

@@ -15,11 +15,13 @@ export class SwapRequestRepository {
   async findReceivedRequests(receiverId: string): Promise<ISwapRequest[]> {
     return await SwapRequestModel.find({ receiverId })
       .populate("senderId", "firstName lastName email imageUrl")
+      .populate("receiverId", "firstName lastName email imageUrl")
       .sort({ createdAt: -1 });
   }
 
   async findSentRequests(senderId: string): Promise<ISwapRequest[]> {
     return await SwapRequestModel.find({ senderId })
+      .populate("senderId", "firstName lastName email imageUrl")
       .populate("receiverId", "firstName lastName email imageUrl")
       .sort({ createdAt: -1 });
   }
@@ -34,5 +36,12 @@ export class SwapRequestRepository {
 
   async findExistingRequest(senderId: string, receiverId: string, status: ISwapRequest["status"] = "pending"): Promise<ISwapRequest | null> {
     return await SwapRequestModel.findOne({ senderId, receiverId, status });
+  }
+
+  async findAll(): Promise<ISwapRequest[]> {
+    return await SwapRequestModel.find()
+      .populate("senderId", "firstName lastName email imageUrl")
+      .populate("receiverId", "firstName lastName email imageUrl")
+      .sort({ createdAt: -1 });
   }
 }
