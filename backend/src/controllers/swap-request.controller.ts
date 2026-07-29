@@ -13,6 +13,7 @@ export class SwapRequestController {
     this.getReceivedRequests = this.getReceivedRequests.bind(this);
     this.getSentRequests = this.getSentRequests.bind(this);
     this.respondToRequest = this.respondToRequest.bind(this);
+    this.getAllRequests = this.getAllRequests.bind(this);
   }
 
   async sendRequest(req: Request, res: Response) {
@@ -103,6 +104,19 @@ export class SwapRequestController {
       );
 
       return ApiResponseHelper.success(res, { request: updatedRequest }, "Request status updated successfully");
+    } catch (error: any) {
+      return ApiResponseHelper.error(
+        res,
+        error.message || "Internal Server Error",
+        error.status || 500
+      );
+    }
+  }
+
+  async getAllRequests(req: Request, res: Response) {
+    try {
+      const requests = await this.swapRequestService.getAllRequests();
+      return ApiResponseHelper.success(res, { requests }, "All swap requests retrieved successfully");
     } catch (error: any) {
       return ApiResponseHelper.error(
         res,
